@@ -1,24 +1,61 @@
------ What is the average spending for each Customer, showing customer name
+----- RETRIEVE THE REVENUE EARNED FOR EACH COOKIE
+-- (SELECT STATEMENT)
+SELECT CookieID, RevenuePerCookie
+FROM Product
+
+
+----- TOTAL NUMBER OF ORDERS BY CUSTOMER
+-- (AGG FUNCTION)
+SELECT CustomerID, COUNT(OrderID) as TotalNumberOfOrders
+FROM Orders
+GROUP BY CustomerID
+
+
+----- WHAT IS THE AVERAGE SPENDING FOR EACH CUSTOMER, SHOWING CUSTOMER NAME 
+-- (INNER JOIN)
 SELECT AVG(o.OrderTotal) as AverageSpending, c.CustomerName
 FROM Orders o
 INNER JOIN Customers c
 ON o.CustomerID = c.CustomerID
 GROUP BY c.CustomerID, c.CustomerName
 
------ Who are the customers who have placed total orders worth more than $15000
+
+----- WHO ARE THE CUSTOMERS WHO HAVE PLACED TOTAL ORDERS WORTH MORE THAN $15000
+-- (INNER JOIN)
 SELECT SUM(o.OrderTotal) as TotalSpending, c.CustomerName
 FROM Orders o
 INNER JOIN Customers c
 ON o.CustomerID = c.CustomerID
 GROUP BY c.CustomerID, c.CustomerName
---HAVING SUM(o.OrderTotal) > 15000
+HAVING SUM(o.OrderTotal) > 15000
 
------ Total number of Orders per Customer
-SELECT CustomerID, COUNT(OrderID) as TotalNumberOfOrders
-FROM Orders
-GROUP BY CustomerID
 
------ Find the customerID who placed the highest number of orders
+----- TOTAL SALES FOR EACH COOKIE
+-- (JOIN)
+SELECT p.CookieID, p.RevenuePerCookie * TotalQuanitySold.CookiesSold AS TotalSalesPerCookie
+FROM Product p
+JOIN (
+	SELECT CookieID, SUM(Quantity) as CookiesSold
+	FROM Order_Product
+	GROUP BY CookieID
+	) as TotalQuanitySold
+ON p.CookieID = TotalQuanitySold.CookieID
+
+
+----- GET PROFIT EARNED ACROSS EACH ORDER FOR EACH COOKIE
+-- (JOIN)
+SELECT p.CookieID, (p.RevenuePerCookie - p.CostPerCookie)* CookiesSold.NumberOfCookiesSold AS TotalProfit
+FROM Product p
+JOIN (
+	SELECT CookieID, SUM(Quantity) as NumberOfCookiesSold
+	FROM Order_Product
+	GROUP BY CookieID
+	) AS CookiesSold
+ON p.CookieID = CookiesSold.CookieID
+
+
+----- FIND THE CUSTOMERID WHO PLACED THE HIGHEST NUMBER OF ORDERS
+-- (SUBQUERYING)
 -- Find the max number of orders first
 SELECT MAX(TotalNumberOfOrders) as MaxOrder
 FROM (
@@ -34,7 +71,6 @@ FROM (
 	FROM Orders
 	GROUP BY CustomerID
 ) AS OrderCounts
-
 WHERE TotalNumberOfOrders = 
 (SELECT MAX(TotalNumberOfOrders) as MaxOrder
 	FROM (
@@ -43,46 +79,5 @@ WHERE TotalNumberOfOrders =
 		GROUP BY CustomerID
 	) AS OrderCounts
 )
-
------ Get Profit earned across each order for each cookie
--- Get Profit per cookie by taking revenue - cost
-SELECT p1.CookieID, p1.RevenuePerCookie - p2.CostPerCookie AS Profit
-FROM Product p1
-JOIN Product p2
-ON p1.CookieID = p2.CookieID
-
--- Get total cookies sold per cookieID
-SELECT CookieID, SUM(Quantity) AS TotalCookiesSoldAcrossAllOrders
-FROM Order_Product
-GROUP BY CookieID
-
--- Create view of Profit and Cookies Sold
-SELECT ProfitPerCookieTable.CookieID, ProfitPerCookieTable.Profit, TotalCookiesSoldAcrossAllOrdersTable.CookiesSold
-FROM (SELECT p1.CookieID, p1.RevenuePerCookie - p2.CostPerCookie AS Profit
-		FROM Product p1
-		JOIN Product p2
-		ON p1.CookieID = p2.CookieID
-	) AS ProfitPerCookieTable
-INNER JOIN (SELECT CookieID, SUM(Quantity) AS CookiesSold
-		FROM Order_Product
-		GROUP BY CookieID
-	) AS TotalCookiesSoldAcrossAllOrdersTable
-ON ProfitPerCookieTable.CookieID = TotalCookiesSoldAcrossAllOrdersTable.CookieID
-
--- Use View to calculate Total Profit sold for each cookie
-SELECT CookieID, Profit * CookiesSold AS TotalProfitEarnedPerCookie
-FROM (
-SELECT ProfitPerCookieTable.CookieID, ProfitPerCookieTable.Profit, TotalCookiesSoldAcrossAllOrdersTable.CookiesSold
-FROM (SELECT p1.CookieID, p1.RevenuePerCookie - p2.CostPerCookie AS Profit
-		FROM Product p1
-		JOIN Product p2
-		ON p1.CookieID = p2.CookieID
-	) AS ProfitPerCookieTable
-INNER JOIN (SELECT CookieID, SUM(Quantity) AS CookiesSold
-		FROM Order_Product
-		GROUP BY CookieID
-	) AS TotalCookiesSoldAcrossAllOrdersTable
-ON ProfitPerCookieTable.CookieID = TotalCookiesSoldAcrossAllOrdersTable.CookieID
-) ProfitOfEachCookieSold 
 
 
